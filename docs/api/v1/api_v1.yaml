@@ -1,0 +1,412 @@
+---
+swagger: "2.0"
+info:
+  description: GreenTown API
+  version: 1.0.0
+  title: GreenTown API
+  contact:
+    email: you@your-company.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+host: virtserver.swaggerhub.com
+basePath: /DOTTORM5/GreenTownAPI/1.0.0
+tags:
+- name: employee
+  description: Operations available to regular user
+- name: commonUser
+  description: Operations available to regular user
+schemes:
+- https
+paths:
+  /user/login:
+    post:
+      tags:
+      - commonUser
+      - employee
+      summary: User Login
+      description: "Request's body must contain Email and Password of the user and the user type (if the user is emp use username instead of email).\nResponse's body contains a token if the authentication goes well. \n"
+      operationId: login
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: userCredentials
+        description: Email and Password
+        required: true
+        schema:
+          $ref: '#/definitions/UserCredentials'
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            $ref: '#/definitions/ApiKey'
+        "100":
+          description: Wait confirm (the email was not confirmed)
+        "400":
+          description: Bad input parameters
+  /user/logout:
+    get:
+      tags:
+      - commonUser
+      - employee
+      summary: User logout
+      description: |
+        Request's header must contain the token.
+      operationId: logout
+      parameters: []
+      responses:
+        "201":
+          description: Logout succesful
+        "400":
+          description: Fail
+      security:
+      - ApiKey: []
+  /user/checkToken:
+    get:
+      tags:
+      - commonUser
+      - employee
+      summary: Check user token
+      description: |
+        Request's header must contain the token. Response body contain all the informations about the user (can be different from common user and employee).
+      operationId: checkToken
+      parameters: []
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: '#/definitions/UserReturn'
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKey: []
+  /user/Registration:
+    post:
+      tags:
+      - commonUser
+      summary: User Registration
+      description: |
+        Request's body must contain all data to the user registration.
+      operationId: registration
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: userData
+        description: User Data required for registration
+        required: true
+        schema:
+          $ref: '#/definitions/UserData'
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Not valid
+        "401":
+          description: Not valid email
+        "402":
+          description: Not valid input
+  /user/checkEmail:
+    post:
+      tags:
+      - commonUser
+      summary: Check user token
+      description: |
+        Request's body must contain the code to validate the email.
+      operationId: checkEmail
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: email
+        required: false
+        schema:
+          $ref: '#/definitions/email'
+      responses:
+        "200":
+          description: Success
+        "400":
+          description: Fail
+  /report:
+    post:
+      tags:
+      - commonUser
+      summary: Create a report
+      description: |
+        User create a report about the city specified in the path
+      operationId: createReportForCity
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - name: userId
+        in: header
+        required: true
+        type: string
+      - in: body
+        name: report
+        required: false
+        schema:
+          $ref: '#/definitions/SingleReport'
+      responses:
+        "201":
+          description: Created
+          schema:
+            required:
+            - reportId
+            properties:
+              reportId:
+                type: string
+                format: uuid
+        "400":
+          description: Bad input parameters
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+      security:
+      - ApiKey: []
+  /reports/{cityId}:
+    get:
+      tags:
+      - commonUser
+      - employee
+      summary: Get reports about a city
+      description: |
+        Returns the most recent reports of the city specified in the URL, if user is emp can use query for select approved reports or pending reports
+      operationId: getReportsByCity
+      produces:
+      - application/json
+      parameters:
+      - name: userId
+        in: header
+        required: true
+        type: string
+      - name: userType
+        in: header
+        required: true
+        type: string
+      - name: cityId
+        in: path
+        required: true
+        type: integer
+      - name: status
+        in: query
+        required: false
+        type: string
+      responses:
+        "200":
+          description: Ok
+          schema:
+            $ref: '#/definitions/Reports'
+        "400":
+          description: Bad input parameters
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKey: []
+  /reports/approva/{cityId}:
+    patch:
+      tags:
+      - employee
+      summary: Approve a report
+      description: |
+        The report is approved. The status changes from no to yes
+      operationId: approveReportByCity
+      parameters:
+      - name: userId
+        in: header
+        required: true
+        type: string
+      - name: cityId
+        in: path
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Approved
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKey: []
+  /reports/destroy/{cityId}:
+    delete:
+      tags:
+      - employee
+      summary: Delete a report
+      description: |
+        The report is deleted.
+      operationId: deleteReportByCity
+      parameters:
+      - name: userId
+        in: header
+        required: true
+        type: string
+      - name: cityId
+        in: path
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: Deleted
+        "400":
+          description: Bad request
+        "401":
+          description: Unauthorized
+      security:
+      - ApiKey: []
+securityDefinitions:
+  ApiKey:
+    type: apiKey
+    name: X-API-Key
+    in: header
+definitions:
+  Reports:
+    type: array
+    items:
+      $ref: '#/definitions/SingleReport'
+  SingleReport:
+    type: object
+    required:
+    - cityId
+    - date
+    - description
+    - images
+    - name
+    - place
+    - status
+    properties:
+      name:
+        type: string
+        example: Strada dissestata
+      description:
+        type: string
+        example: Buche per strada, mi si buca la ruota :)
+      place:
+        type: string
+        example: Napoli, NA
+      cityId:
+        type: integer
+        example: 80133
+      date:
+        type: string
+        example: 01/01/01 10:10
+      images:
+        type: string
+        example: base64 image encoded
+      status:
+        type: string
+        example: si
+  UserReturn:
+    type: object
+    required:
+    - birthdate
+    - cell
+    - city
+    - email
+    - id
+    - name
+    - password
+    - surname
+    properties:
+      id:
+        type: string
+        format: uuid
+      name:
+        type: string
+        example: John
+      surname:
+        type: string
+        example: Doe
+      email:
+        type: string
+        format: email
+      password:
+        type: string
+        format: password
+        example: passwordofjohn
+      birthdate:
+        type: string
+        format: date
+      city:
+        type: string
+        example: Napoli, NA
+      cell:
+        type: string
+        example: "3334445556"
+  UserData:
+    type: object
+    required:
+    - birthdate
+    - cell
+    - city
+    - email
+    - name
+    - password
+    - surname
+    properties:
+      name:
+        type: string
+        example: John
+      surname:
+        type: string
+        example: Doe
+      email:
+        type: string
+        format: email
+      password:
+        type: string
+        format: password
+        example: passwordofjohn
+      birthdate:
+        type: string
+        format: date
+      city:
+        type: string
+        example: Napoli, NA
+      cell:
+        type: string
+        example: "3334445556"
+  UserCredentials:
+    type: object
+    required:
+    - email
+    - password
+    - userId
+    properties:
+      userId:
+        type: string
+        format: uuid
+        example: d290f1ee-6c54-4b01-90e6-d70174
+      email:
+        type: string
+        format: email
+      password:
+        type: string
+        format: password
+        example: passwordofjohn
+  ApiKey:
+    type: object
+    required:
+    - token
+    properties:
+      token:
+        type: string
+        format: uuid
+        example: eyJraWQiOiI3MzQ4NDYwMDkiLCJ4NXQiOiJB
+  email:
+    type: object
+    required:
+    - email
+    properties:
+      email:
+        type: string
+        example: 553n34
